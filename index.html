@@ -34,7 +34,7 @@
     .question{font-size:22px; line-height:1.35; margin:0 0 14px}
 
     .choices{display:grid; gap:10px; margin:14px 0}
-    .choice{position:relative; display:flex; align-items:center; gap:10px; width:100%;
+    .choice{position:relative; display:flex; align-items:center; gap:10px; width:100%;text-align:left;
       border:1px solid var(--border); background:#0f1320; color:var(--text);
       padding:14px 16px; border-radius:14px; cursor:pointer; user-select:none; transition:transform .05s ease, border-color .2s;
     }
@@ -102,7 +102,6 @@
   </div>
 
   <script>
-  // Вопросы — поддерживаются 4..10 вариантов без изменений в логике
   const QUESTIONS = [
     { q:"Кто здесь мама двоих детей и фанатка Yii?",
       choices:["Алена APIна","Анджелина Yii","Angular Merkel","Бритни Спирт"], correct:1 },
@@ -114,7 +113,7 @@
       choices:["Александр Block","Дэвид БекхЭМ","Усама БЭМ Ладен","Льюис Бэмилтон"], correct:2 },
     { q:"Кого из этих господ позовём на облачные дела?",
       choices:["Сэр Сервертон","Амазон фон Штек","Эйжа Уэйрс","Гугл МакКлауд"], correct:3 },
-    { q:"Где «встречаемся, чтобы расставить все точки»?",
+    { q:"Где встречаемся, чтобы расставить все точки?",
       choices:["У останова эвентбаса","На площади WebSocket","У моста REST","На петле событий","Над Е"], correct:0 },
     { q:"Как называется криптовалюта полного безразличия?",
       choices:["Ноль забот","Всё равно","Один хрен","Пофиг-койн"], correct:2 },
@@ -276,13 +275,13 @@
 
     if (score === 14) {
       msg = 'Вы - владелец оченьудобно.рф в этой или соседней вселенной.';
-    } else if (score === 13) {
+    } else if (score >= 12) {
       msg = 'Приветствую ваше оченьудобнейшее сиятельство. Однако, до идеала ещё совсем чуть-чуть.';
-    } else if (score >= 10 && score <= 12) {
-      msg = 'Что ж, это как минимум уровень студента старших курсов мемологического факультета, но стоит перечитать версию для слабодумающих.';
-    } else if (score >= 6 && score <= 10) {
+    } else if (score >= 9) {
+      msg = 'Что ж, это как минимум уровень студента старших курсов мемологического факультета, но, возможно, стоит перечитать версию для слабодумающих.';
+    } else if (score >= 5) {
       msg = 'Вы же это специально, да? А могли бы и ценный приз выиграть...';
-    } else if (score >= 1 && score <= 6) {
+    } else if (score >= 1) {
       msg = 'Если бы мы знали, что это такое оченьудобное, мы бы знали, что это такое.';
     } else { // score === 0 or anything unexpected
       msg = 'Как-то даже неоченьудобно об этом говорить...';
