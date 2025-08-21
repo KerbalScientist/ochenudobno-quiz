@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оченьудобно — Квиз</title>
+  <style>
+    :root{
+      --bg:#0b0d12;--card:#131723;--text:#eef1f7;--muted:#9aa3b2;--accent:#7c5cff;--accent-2:#2ad3ff;--ok:#1bca8b;--bad:#ff5964;--border:#252b3a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 70% -10%, rgba(124,92,255,.18), rgba(42,211,255,.10), transparent 60%) ,
+                  radial-gradient(900px 500px at -10% 120%, rgba(42,211,255,.18), rgba(124,92,255,.10), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      display:grid; place-items:center; padding:24px;
+    }
+    .app{width:min(860px, 100%);}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--card);
+      border:1px solid var(--border); border-radius:20px; padding:20px; box-shadow:0 20px 60px rgba(0,0,0,.35);
+    }
+    .header{display:flex; align-items:center; gap:16px; margin-bottom:12px}
+    .title{font-weight:700; letter-spacing:.2px}
+    .badge{font-size:12px; color:var(--muted); padding:6px 10px; border:1px solid var(--border); border-radius:999px}
+    .progress{height:8px; background:#0d1018; border:1px solid var(--border); border-radius:999px; overflow:hidden}
+    .bar{height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition:width .35s ease}
+
+    .qwrap{margin-top:12px}
+    .qindex{color:var(--muted); font-size:14px; margin:0 0 6px}
+    .question{font-size:22px; line-height:1.35; margin:0 0 14px}
+
+    .choices{display:grid; gap:10px; margin:14px 0}
+    .choice{position:relative; display:flex; align-items:center; gap:10px; width:100%;
+      border:1px solid var(--border); background:#0f1320; color:var(--text);
+      padding:14px 16px; border-radius:14px; cursor:pointer; user-select:none; transition:transform .05s ease, border-color .2s;
+    }
+    .choice:hover{border-color:#2a3144}
+    .choice:active{transform:scale(.995)}
+    .choice[data-state="correct"]{border-color:color-mix(in oklab, var(--ok) 65%, #ffffff 0%); box-shadow:inset 0 0 0 1px rgba(27,202,139,.15)}
+    .choice[data-state="wrong"]{border-color:color-mix(in oklab, var(--bad) 65%, #ffffff 0%);}
+    .choice .marker{flex:0 0 28px; height:28px; border:1px solid var(--border); border-radius:999px; display:grid; place-items:center; font-size:12px; color:var(--muted)}
+    .choice[data-state="correct"] .marker{border-color:var(--ok)}
+    .choice[data-state="wrong"] .marker{border-color:var(--bad)}
+
+    .explain{min-height:28px; margin-top:6px; font-size:14px}
+    .explain[hidden]{display:none}
+    .explain.ok{color:var(--ok)}
+    .explain.bad{color:var(--bad)}
+
+    .footer{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+    .btn{appearance:none; border:1px solid var(--border); background:#0f1320; color:var(--text); padding:12px 16px; border-radius:12px; cursor:pointer}
+    .btn.primary{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0)), #191f2e; border-color:#2b3347}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+
+    .score{color:var(--muted); font-size:14px}
+
+    .result{display:none}
+    .result.show{display:block}
+    .result h2{margin:0 0 8px}
+    .result .big{font-size:30px; font-weight:800}
+    .result .small{color:var(--muted)}
+
+    .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card" id="screen-quiz" role="region" aria-labelledby="quiz-title">
+      <div class="header">
+        <div class="title" id="quiz-title">Оченьудобный КВИЗ</div>
+        <div class="badge" id="badge-count">14 вопросов</div>
+      </div>
+      <div class="progress" aria-hidden="true"><div class="bar" id="bar"></div></div>
+
+      <div class="qwrap">
+        <p class="qindex" id="qindex">Вопрос 1 из 14</p>
+        <h1 class="question" id="question" tabindex="-1"></h1>
+        <div id="choices" class="choices" role="radiogroup" aria-describedby="hint"></div>
+        <div id="explain" class="explain" hidden aria-live="polite"></div>
+      </div>
+
+      <div class="footer">
+        <button id="prev" class="btn" aria-label="Предыдущий вопрос">Назад</button>
+        <div class="score" id="score">Счёт: 0 / 14</div>
+        <button id="next" class="btn primary" aria-label="Следующий вопрос">Далее</button>
+      </div>
+    </div>
+
+    <div class="card result" id="screen-result" role="region" aria-labelledby="result-title">
+      <h2 id="result-title">Готово!</h2>
+      <p class="big" id="final-score">13 / 14</p>
+      <p class="small" id="final-msg"></p>
+      <div style="display:flex; gap:10px; margin-top:10px">
+        <button id="restart" class="btn primary">Пройти ещё раз</button>
+        <button id="review" class="btn">Посмотреть ответы</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Вопросы — поддерживаются 4..10 вариантов без изменений в логике
+  const QUESTIONS = [
+    { q:"Кто здесь мама двоих детей и фанатка Yii?",
+      choices:["Алена APIна","Анджелина Yii","Angular Merkel","Бритни Спирт"], correct:1 },
+    { q:"Кто НЕ относится к CRUD-семейству?",
+      choices:["Махаил CRUD","Бред CRUD","Том CRUD"], correct:1 },
+    { q:"Как зовут царя с уникальным идентификатором?",
+      choices:["Царь Битрикс I","Царь Tokenович","Царь SSLемир","Царь GUIDon"], correct:3 },
+    { q:"Кого из персонажей шутливо называют «экстремальным» адептом БЭМ?",
+      choices:["Александр Block","Дэвид БекхЭМ","Усама БЭМ Ладен","Льюис Бэмилтон"], correct:2 },
+    { q:"Кого из этих господ позовём на облачные дела?",
+      choices:["Сэр Сервертон","Амазон фон Штек","Эйжа Уэйрс","Гугл МакКлауд"], correct:3 },
+    { q:"Где «встречаемся, чтобы расставить все точки»?",
+      choices:["У останова эвентбаса","На площади WebSocket","У моста REST","На петле событий","Над Е"], correct:0 },
+    { q:"Как называется криптовалюта полного безразличия?",
+      choices:["Ноль забот","Всё равно","Один хрен","Пофиг-койн"], correct:2 },
+    { q:"Кого позовём делать REST и документацию?",
+      choices:["Алена APIна","Люк Json","Христофор Column","Вводитель"], correct:0 },
+    { q:"Кто, по мудрости, «виноваты»?",
+      choices:["Списки и ложи","Масоны, массивы, жилые кварталы","Только масоны","Только массивы","Только кварталы, особенно один из них"], correct:1 },
+    { q:"Как зовут фронтенд-канцлера?",
+      choices:["Vue Брант","React Шрёдер","Angular Merkel","Svelte Колль"], correct:2 },
+    { q:"Сколько у гордых питонистов стоит сайт и бот?",
+      choices:["50 ₽ сайт, 100 ₽ бот","1000 ₽ сайт, бесплатно бот","100 ₽ сайт, 50 ₽ бот", "По любви"], correct:2 },
+    { q:"Как в историях зовут Петра Ивановича за границей?",
+      choices:["Petr Ivanovich Deploy","Petr Ivanovich Migration","Pete Version","Piotr Migrantovich"], correct:1 },
+    { q:"Какая связь является наиболее удобной?",
+      choices:["SSL и постель","DOM с GRID'ом","CRUD про пруд","VLESS и вылез"], correct:1 },
+    { 
+      q: "Как звучит мудрость про git?",
+      choices: [
+        "Push — не воробей: вылетит — не amendнешь",
+        "Не имей сто рублей, а имей сто бранчей",
+        "Что отправлено pushом, то из git blame не вырубишь и топором",
+        "За двумя бранчами погонишься — ни один не смержишь.",
+        "С миру по cherry-pick’у — релиз в копилку.",
+        "Заинитил дед репку. Выросла репка большая-пребольшая. Стал он её пуллить. Тянет-потянет, вытянуть не может...",
+        "Не плюй в origin — пригодится запуллиться.",
+        "Сколько ветке ни ветвиться — в master всё равно слиться.",
+        "Не буди лихо — не force-pushь, пока тихо.",
+        "Не помни зла — помни commit SHA.",
+        "git push объелся груш",
+        "Семь раз отмерь, один раз git merge.",
+        "На чужой репок не разевай роток — стряпай свой fork.",
+        "На нет — и мержА нет.",
+        "У семи ревьюеров PR без аппрува.",
+        "Первый merge — комом."
+      ],
+      correct: 11 
+    }
+  ];
+
+
+  // Состояние
+  let idx = 0; // индекс вопроса
+  let score = 0; // правильных ответов
+  const answered = new Array(QUESTIONS.length).fill(null); // null | true | false
+
+  // Элементы
+  const $qscreen = document.getElementById('screen-quiz');
+  const $rscreen = document.getElementById('screen-result');
+  const $bar = document.getElementById('bar');
+  const $qindex = document.getElementById('qindex');
+  const $question = document.getElementById('question');
+  const $choices = document.getElementById('choices');
+  const $explain = document.getElementById('explain');
+  const $prev = document.getElementById('prev');
+  const $next = document.getElementById('next');
+  const $score = document.getElementById('score');
+  const $finalScore = document.getElementById('final-score');
+  const $finalMsg = document.getElementById('final-msg');
+  const $restart = document.getElementById('restart');
+  const $review = document.getElementById('review');
+  const $badge = document.getElementById('badge-count');
+
+  $badge.textContent = `${QUESTIONS.length} вопросов`;
+  $score.textContent = `Счёт: ${score} / ${QUESTIONS.length}`;
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  function render(){
+    // Обновить прогресс
+    const pct = (idx) / (QUESTIONS.length);
+    $bar.style.width = `${Math.round(pct*100)}%`;
+    $qindex.textContent = `Вопрос ${idx+1} из ${QUESTIONS.length}`;
+
+    // Рендер вопроса
+    const {q, choices, correct} = QUESTIONS[idx];
+    $question.textContent = q;
+    $choices.innerHTML = '';
+    $choices.setAttribute('aria-label', `Варианты ответа, доступно ${choices.length}`);
+
+    choices.forEach((text, i)=>{
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.type = 'button';
+      btn.setAttribute('role','radio');
+      btn.setAttribute('aria-checked','false');
+      btn.dataset.index = i;
+      btn.innerHTML = `<span class="marker">${i+1}</span><span>${text}</span>`;
+      btn.addEventListener('click', ()=> handleChoice(i));
+      $choices.appendChild(btn);
+    });
+
+    // Состояние объяснения и кнопок
+    $explain.hidden = true; $explain.textContent = '';
+    $prev.disabled = idx === 0;
+    $next.disabled = true; // станет доступна после ответа
+
+    // Если уже отвечали — показать состояние (режим просмотра)
+    if(answered[idx] !== null){
+      reveal(answered[idx]);
+      $next.disabled = false;
+    }
+
+    // Фокус на вопрос, для доступности
+    setTimeout(()=> $question.focus(), 0);
+  }
+
+  function handleChoice(choiceIndex){
+    if(answered[idx] !== null) return; // уже отвечали
+    const correctIndex = QUESTIONS[idx].correct;
+    const isCorrect = choiceIndex === correctIndex;
+    answered[idx] = isCorrect;
+
+    if(isCorrect) score++;
+    $score.textContent = `Счёт: ${score} / ${QUESTIONS.length}`;
+
+    reveal(isCorrect, choiceIndex);
+
+    $next.disabled = false;
+  }
+
+  function reveal(isCorrect, clickedIndex){
+    const correctIndex = QUESTIONS[idx].correct;
+
+    // Подсветить все варианты согласно состоянию
+    [...$choices.children].forEach((btn, i)=>{
+      if(i === correctIndex) btn.dataset.state = 'correct';
+      if(clickedIndex !== undefined && i === clickedIndex && i !== correctIndex) btn.dataset.state = 'wrong';
+      btn.disabled = true; // запретить повторный выбор
+      btn.setAttribute('aria-checked', String(i === clickedIndex));
+    });
+
+    // Сообщение
+    if(isCorrect){
+      $explain.className = 'explain ok';
+      $explain.textContent = 'Удобно!';
+    } else {
+      const rightText = QUESTIONS[idx].choices[correctIndex];
+      $explain.className = 'explain bad';
+      $explain.textContent = `Неудобно. Верный ответ: «${rightText}».`;
+    }
+    $explain.hidden = false;
+  }
+
+  function next(){
+    if(idx < QUESTIONS.length - 1){
+      idx++; render();
+    } else {
+      showResult();
+    }
+  }
+  function prev(){ idx = clamp(idx-1, 0, QUESTIONS.length-1); render(); }
+
+  function showResult(){
+    document.getElementById('screen-quiz').style.display = 'none';
+    document.getElementById('screen-result').classList.add('show');
+    document.getElementById('final-score').textContent = `${score} / ${QUESTIONS.length}`;
+
+    let msg = '';
+
+    if (score === 14) {
+      msg = 'Вы - владелец оченьудобно.рф в этой или соседней вселенной.';
+    } else if (score === 13) {
+      msg = 'Приветствую ваше оченьудобнейшее сиятельство. Однако, до идеала ещё совсем чуть-чуть.';
+    } else if (score >= 10 && score <= 12) {
+      msg = 'Что ж, это как минимум уровень студента старших курсов мемологического факультета, но стоит перечитать версию для слабодумающих.';
+    } else if (score >= 6 && score <= 10) {
+      msg = 'Вы же это специально, да? А могли бы и ценный приз выиграть...';
+    } else if (score >= 1 && score <= 6) {
+      msg = 'Если бы мы знали, что это такое оченьудобное, мы бы знали, что это такое.';
+    } else { // score === 0 or anything unexpected
+      msg = 'Как-то даже неоченьудобно об этом говорить...';
+    }
+
+    document.getElementById('final-msg').textContent = msg;
+  }
+
+  function restart(){
+    idx = 0; score = 0; answered.fill(null);
+    document.getElementById('screen-result').classList.remove('show');
+    document.getElementById('screen-quiz').style.display = '';
+    document.getElementById('score').textContent = `Счёт: ${score} / ${QUESTIONS.length}`;
+    render();
+  }
+
+  function review(){
+    // Перейти на первый неотвеченный или на начало
+    const first = answered.findIndex(v=>v===null);
+    idx = first === -1 ? 0 : first;
+    document.getElementById('screen-result').classList.remove('show');
+    document.getElementById('screen-quiz').style.display = '';
+    render();
+  }
+
+  // Управление
+  document.getElementById('next').addEventListener('click', next);
+  document.getElementById('prev').addEventListener('click', prev);
+  document.getElementById('restart').addEventListener('click', restart);
+  document.getElementById('review').addEventListener('click', review);
+
+  // Клавиатура: стрелки влево/вправо, 1..9 для выбора
+  window.addEventListener('keydown', (e)=>{
+    if(document.getElementById('screen-result').classList.contains('show')) return; // на экране результата не обрабатываем
+    if(e.key === 'ArrowRight'){ e.preventDefault(); if(!document.getElementById('next').disabled) next(); }
+    if(e.key === 'ArrowLeft'){ e.preventDefault(); if(!document.getElementById('prev').disabled) prev(); }
+    const num = parseInt(e.key, 10);
+    if(!Number.isNaN(num) && num>=1 && num<=10){
+      const btn = document.getElementById('choices').children[num-1];
+      if(btn) btn.click();
+    }
+  });
+
+  // Первый рендер
+  render();
+  </script>
+  <!-- Основано на материалах сайта «Оченьудобно.рф». -->
+</body>
+</html>
